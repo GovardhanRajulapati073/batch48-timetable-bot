@@ -1,0 +1,1 @@
+# batch48-timetable-bot
