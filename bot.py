@@ -1,24 +1,13 @@
 import os
 import json
-import asyncio
 from datetime import datetime, timedelta
-
-from flask import Flask, request
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    ContextTypes,
-)
+from telegram.ext import Application, CommandHandler, ContextTypes
 
-# ================= CONFIG =================
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 PORT = int(os.environ.get("PORT", 10000))
 
-app = Flask(__name__)
-tg_app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-# ================= UTIL =================
+# ---------- helpers ----------
 def load_json(file):
     with open(file, "r") as f:
         return json.load(f)
@@ -27,13 +16,12 @@ def save_json(file, data):
     with open(file, "w") as f:
         json.dump(data, f, indent=2)
 
-# ================= COMMANDS =================
+# ---------- commands ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
     users = load_json("users.json")
-
-    if chat_id not in users:
-        users.append(chat_id)
+    cid = update.effective_chat.id
+    if cid not in users:
+        users.append(cid)
         save_json("users.json", users)
 
     await update.message.reply_text(
@@ -89,11 +77,10 @@ async def week(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(msg)
 
-# ================= REMINDERS =================
+# ---------- reminders ----------
 async def reminder(context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now()
     day = now.strftime("%A")
-
     tt = load_json("timetable.json")
     users = load_json("users.json")
 
@@ -101,7 +88,6 @@ async def reminder(context: ContextTypes.DEFAULT_TYPE):
         ct = datetime.strptime(c["time"], "%I:%M %p").replace(
             year=now.year, month=now.month, day=now.day
         )
-
         if timedelta(minutes=9) <= (ct - now) <= timedelta(minutes=10):
             for u in users:
                 await context.bot.send_message(
@@ -114,26 +100,21 @@ async def reminder(context: ContextTypes.DEFAULT_TYPE):
                     )
                 )
 
-# ================= HANDLERS =================
-tg_app.add_handler(CommandHandler("start", start))
-tg_app.add_handler(CommandHandler("today", today))
-tg_app.add_handler(CommandHandler("nextclass", nextclass))
-tg_app.add_handler(CommandHandler("week", week))
+# ---------- app ----------
+app = Application.builder().token(BOT_TOKEN).build()
 
-tg_app.job_queue.run_repeating(reminder, interval=60, first=10)
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("today", today))
+app.add_handler(CommandHandler("nextclass", nextclass))
+app.add_handler(CommandHandler("week", week))
 
-# ================= WEBHOOK =================
-@app.route("/", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), tg_app.bot)
-    asyncio.run(tg_app.process_update(update))
-    return "OK"
+app.job_queue.run_repeating(reminder, interval=60, first=10)
 
-# ================= RUN =================
+# ---------- RUN WEBHOOK (THIS IS THE KEY) ----------
 if __name__ == "__main__":
-    async def main():
-        await tg_app.initialize()
-        await tg_app.start()
-        app.run(host="0.0.0.0", port=PORT)
-
-    asyncio.run(main())
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path="",
+        webhook_url=f"https://batch48-timetable-bot.onrender.com"
+    )
