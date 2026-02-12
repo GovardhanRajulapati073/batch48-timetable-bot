@@ -1,18 +1,25 @@
-import os, json
+import os, json, asyncio
 from datetime import datetime, timedelta
+from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+PORT = int(os.environ.get("PORT", 10000))
 
-def load(file):
-    with open(file) as f:
-        return json.load(f)
+app = Flask(__name__)
+tg_app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-def save(file, data):
-    with open(file, "w") as f:
-        json.dump(data, f, indent=2)
+# ---------- helpers ----------
+def load(f):
+    with open(f) as file:
+        return json.load(file)
 
+def save(f, d):
+    with open(f, "w") as file:
+        json.dump(d, file, indent=2)
+
+# ---------- commands ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cid = update.effective_chat.id
     users = load("users.json")
@@ -30,11 +37,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
     day = datetime.now().strftime("%A")
     tt = load("timetable.json")
-
     if day not in tt:
-        await update.message.reply_text("🎉 No classes today!")
+        await update.message.reply_text("No classes today 🎉")
         return
-
     msg = f"📅 {day}\n\n"
     for c in tt[day]:
         msg += f"{c['time']} – {c['subject']}\n🏫 {c['room']}\n\n"
@@ -44,7 +49,6 @@ async def nextclass(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now()
     day = now.strftime("%A")
     tt = load("timetable.json")
-
     for c in tt.get(day, []):
         ct = datetime.strptime(c["time"], "%I:%M %p").replace(
             year=now.year, month=now.month, day=now.day
@@ -59,9 +63,9 @@ async def nextclass(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def week(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tt = load("timetable.json")
     msg = "📅 Weekly Timetable\n\n"
-    for day, classes in tt.items():
-        msg += f"*{day}*\n"
-        for c in classes:
+    for d, cls in tt.items():
+        msg += f"*{d}*\n"
+        for c in cls:
             msg += f"{c['time']} – {c['subject']} ({c['room']})\n"
         msg += "\n"
     await update.message.reply_text(msg, parse_mode="Markdown")
@@ -71,7 +75,6 @@ async def reminder(context: ContextTypes.DEFAULT_TYPE):
     day = now.strftime("%A")
     tt = load("timetable.json")
     users = load("users.json")
-
     for c in tt.get(day, []):
         ct = datetime.strptime(c["time"], "%I:%M %p").replace(
             year=now.year, month=now.month, day=now.day
@@ -80,21 +83,28 @@ async def reminder(context: ContextTypes.DEFAULT_TYPE):
             for u in users:
                 await context.bot.send_message(
                     u,
-                    f"⏰ Class Reminder\n\n{c['subject']}\n🕒 {c['time']}\n🏫 {c['room']}"
+                    f"⏰ Reminder\n\n{c['subject']}\n🕒 {c['time']}\n🏫 {c['room']}"
                 )
 
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+# ---------- handlers ----------
+tg_app.add_handler(CommandHandler("start", start))
+tg_app.add_handler(CommandHandler("today", today))
+tg_app.add_handler(CommandHandler("nextclass", nextclass))
+tg_app.add_handler(CommandHandler("week", week))
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("today", today))
-    app.add_handler(CommandHandler("nextclass", nextclass))
-    app.add_handler(CommandHandler("week", week))
+tg_app.job_queue.run_repeating(reminder, interval=60, first=10)
 
-    app.job_queue.run_repeating(reminder, interval=60, first=10)
+# ---------- webhook ----------
+@app.route("/", methods=["POST"])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), tg_app.bot)
+    tg_app.update_queue.put_nowait(update)
+    return "OK"
 
-    print("🤖 Bot is running...")
-    app.run_polling()
-
+# ---------- run ----------
 if __name__ == "__main__":
-    main()
+    async def main():
+        await tg_app.initialize()
+        await tg_app.start()
+        app.run(host="0.0.0.0", port=PORT)
+    asyncio.run(main())
