@@ -1,0 +1,36 @@
+{
+  "Monday": [
+    {"subject":"AI Assistant Coding","time":"09:00 AM","room":"3212_B_BL3_SF"},
+    {"subject":"AI Assistant Coding","time":"10:00 AM","room":"3212_B_BL3_SF"},
+    {"subject":"High Performance Computing","time":"11:00 AM","room":"3113_BL3_FF"}
+  ],
+  "Tuesday": [
+    {"subject":"DevOps and Full Stack","time":"09:00 AM","room":"3201_B_BL3_SF"},
+    {"subject":"DevOps and Full Stack","time":"10:00 AM","room":"3201_B_BL3_SF"},
+    {"subject":"DevOps and Full Stack","time":"11:00 AM","room":"3106_BL3_FF"},
+    {"subject":"Competitive Programming","time":"01:00 PM","room":"3201_B_BL3_SF"},
+    {"subject":"Competitive Programming","time":"02:00 PM","room":"3201_B_BL3_SF"},
+    {"subject":"Psychology","time":"03:00 PM","room":"7205-SRiX-SF"},
+    {"subject":"Psychology","time":"04:00 PM","room":"7205-SRiX-SF"}
+  ],
+  "Wednesday": [
+    {"subject":"Competitive Programming","time":"09:00 AM","room":"3107_B_BL3_FF"},
+    {"subject":"Competitive Programming","time":"10:00 AM","room":"3107_B_BL3_FF"},
+    {"subject":"High Performance Computing","time":"11:00 AM","room":"3205_BL3_SF"},
+    {"subject":"AI Assistant Coding","time":"01:00 PM","room":"3102_B_BL3_FF"},
+    {"subject":"AI Assistant Coding","time":"02:00 PM","room":"3102_B_BL3_FF"},
+    {"subject":"Undergraduate Research in CS","time":"04:00 PM","room":"3215_BL3_SF"}
+  ],
+  "Thursday": [
+    {"subject":"High Performance Computing","time":"02:00 PM","room":"3113_BL3_FF"},
+    {"subject":"Competitive Programming","time":"03:00 PM","room":"3106_BL3_FF"},
+    {"subject":"Psychology","time":"04:00 PM","room":"7205-SRiX-SF"}
+  ],
+  "Friday": [
+    {"subject":"Competitive Programming","time":"10:00 AM","room":"3106_BL3_FF"},
+    {"subject":"High Performance Computing","time":"11:00 AM","room":"3101_B_BL3_FF"},
+    {"subject":"High Performance Computing","time":"12:00 PM","room":"3101_B_BL3_FF"},
+    {"subject":"DevOps and Full Stack","time":"03:00 PM","room":"3111_B_BL3_FF"},
+    {"subject":"DevOps and Full Stack","time":"04:00 PM","room":"3111_B_BL3_FF"}
+  ]
+}
